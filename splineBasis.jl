@@ -58,8 +58,7 @@ function Ispline(x, order, knots)
                     left_knots = extended_knots[start_idx:end_idx]
                     right_knots = extended_knots[(basis_idx + order + 1):Int(knot_indices[point_idx] + order + 1)]
                     
-                    ispline_basis[basis_idx - 1, point_idx] = 
-                        sum((right_knots - left_knots) .* 
+                    ispline_basis[basis_idx - 1, point_idx] = sum((right_knots - left_knots) .* 
                             rec_basis[start_idx:end_idx, point_idx]) / (order + 1)
                 else
                     ispline_basis[basis_idx - 1, point_idx] = 0
