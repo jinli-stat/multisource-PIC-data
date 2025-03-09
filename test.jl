@@ -1,6 +1,6 @@
 using Optimization
 using OptimizationNLopt
-import ForwardDiff
+
 
 include("liklhdFun.jl")
 include("simData.jl")
@@ -10,15 +10,15 @@ J0 = 10
 p =  50
 n = 1000
 
-mu = vcat(-0.5, -0.5, 0.5, 0.5, 0.0, 0.0, fill(0.0, p-6))
+real_mu = vcat(-0.5, -0.5, 0.5, 0.5, 0.0, 0.0, fill(0.0, p-6))
 alpha_1 = vcat(0.0, 0.0, 0.5, 0.5, 0.5, 0.5, fill(0.0, p-6))
 alpha_2 = vcat(0.0, 0.0, -0.5, -0.5, -0.5, -0.5, fill(0.0, p-6))
 alpha_3 = vcat(0.0, 0.0, -0.5, -0.5, -0.5, -0.5, fill(0.0, p-6))
 alpha_4 = vcat(0.0, 0.0, 0.5, 0.5, 0.5, 0.5, fill(0.0, p-6))
-beta_1 = mu + alpha_1
-beta_2 = mu + alpha_2
-beta_3 = mu + alpha_3
-beta_4 = mu + alpha_4
+beta_1 = real_mu + alpha_1
+beta_2 = real_mu + alpha_2
+beta_3 = real_mu + alpha_3
+beta_4 = real_mu + alpha_4
 
 Random.seed!(2025)
 data_1 = gen_pic_data(n, 0.2, beta_1, "case1")
