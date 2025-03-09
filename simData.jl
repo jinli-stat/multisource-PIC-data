@@ -1,14 +1,13 @@
 using Distributions, Random, DataFrames
-function create_cov_matrix(p)
-    return [0.5^abs(i-j) for i in 1:p, j in 1:p]
-end
 
-function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1"; cov_matrix=nothing)
+function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
     # status 1: exact observe; 2: left censored; 3: right censored; 4: interval censored
     # cum_base_hzd: 
     #           case1: Λ_0 = 0.5*t
-    #           case2: Λ_0 = 0.2*t^2
+    #           case2: Λ_0 = 0.2*t^2  
     p = length(true_beta)
+    cov_matrix = [0.5^abs(i-j) for i in 1:p, j in 1:p]
+    cov_matrix[cov_matrix.<=10e-5] .= 0
     inv_Lambda0 = if cum_base_hzd == "case1"
         x -> x / 0.5
     elseif cum_base_hzd == "case2"
@@ -16,19 +15,19 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1"; cov_matrix
     else
         error("Unsupported cum_base_hzd case")
     end
-    if cum_base_hzd == "case1"
-        x = hcat(rand(Binomial(1, 0.5), n), randn(n, p-1))
-    elseif cum_base_hzd == "case2"
-        mean_vector = zeros(p-1)
-        x = hcat(rand(Binomial(1, 0.5), n), rand(MvNormal(mean_vector, cov_matrix), n)')
-    end
+
+    mean_vector = zeros(p)
+    x = rand(MvNormal(mean_vector, cov_matrix), n)'
+    x[:, 2] = rand(Binomial(1, 0.5), n)
+    x[:, 4] = rand(Binomial(1, 0.5), n)
+    x[:, 6] = rand(Binomial(1, 0.5), n)
     risk_score =  exp.(x * true_beta)
     true_time = inv_Lambda0.(rand(Exponential(1), n) ./ risk_score)
     obv_point = 1 .+ rand(Poisson(4), n)
 
-    u = repeat([0.0], n)
-    v = repeat([0.0], n)
-    status = repeat([4], n)
+    u = fill(0.0, n)
+    v = fill(0.0, n)
+    status = fill(4, n)
     ind = sample(1:n, Int(round(n * exact_rate, digits = 0)), replace = false) |> sort
 
     for i = 1:n
@@ -66,21 +65,27 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1"; cov_matrix
     return(data)
 end
 
+
+# test
 # p =  50
-# real_beta = vcat([0.9, -0.5, 0, 0, 0.7], zeros(p-5))
-# cov_matrix = create_cov_matrix(p-1)
-# n = 100000
-# data = gen_pic_data(n, 0.2, real_beta, "case1");
-# counts = combine(groupby(data, :status), nrow => :count)
-# total = sum(counts.count)
-# counts.Percent = counts.count ./ total .* 100
-
-
-# p =  10
-# real_beta = vcat([0.9, -0.5, 0, 0, 0.7], zeros(p-5))
-# cov_matrix = create_cov_matrix(p-1)
 # n = 1000
-# data = gen_pic_data(n, 0.2, real_beta, "case2"; cov_matrix)
+
+# mu = vcat(-0.5, -0.5, 0.5, 0.5, 0.0, 0.0, fill(0.0, p-6))
+# alpha_1 = vcat(0.0, 0.0, 0.5, 0.5, 0.5, 0.5, fill(0.0, p-6))
+# alpha_2 = vcat(0.0, 0.0, -0.5, -0.5, -0.5, -0.5, fill(0.0, p-6))
+# alpha_3 = vcat(0.0, 0.0, -0.5, -0.5, -0.5, -0.5, fill(0.0, p-6))
+# alpha_4 = vcat(0.0, 0.0, 0.5, 0.5, 0.5, 0.5, fill(0.0, p-6))
+
+# beta_1 = mu + alpha_1
+# beta_2 = mu + alpha_2
+# beta_3 = mu + alpha_3
+# beta_4 = mu + alpha_4
+
+# data_1 = gen_pic_data(n, 0.2, beta_1, "case1");
+# data_2 = gen_pic_data(n, 0.2, beta_2, "case1");
+# data_3 = gen_pic_data(n, 0.2, beta_3, "case1");
+# data_4 = gen_pic_data(n, 0.2, beta_4, "case1");
+
 # counts = combine(groupby(data, :status), nrow => :count)
 # total = sum(counts.count)
 # counts.Percent = counts.count ./ total .* 100
