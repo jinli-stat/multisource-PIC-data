@@ -17,15 +17,15 @@ function initial_knots(values, J0)
     return a
 end
 
-function PIC_data_reorgnz(data, order, knots)
+function PIC_data_reorgnz(data, spl_order, knots)
     # Exact observations
     data_e = filter(row -> row.status == 1, data)
     n_e = size(data_e, 1)
     exact_obs = if n_e > 0
         x_e = hcat(eachcol(data_e[:, 4:end])...)
         t_e = data_e[:, 1]
-        mspline_e = Mspline(t_e, order, knots)'
-        ispline_e = Ispline(t_e, order, knots)'
+        mspline_e = Mspline(t_e, spl_order, knots)'
+        ispline_e = Ispline(t_e, spl_order, knots)'
         (n_e, x_e, mspline_e, ispline_e)
     else
         nothing
@@ -37,7 +37,7 @@ function PIC_data_reorgnz(data, order, knots)
     left_cens = if n_l > 0
         x_l = hcat(eachcol(data_l[:, 4:end])...)
         v_l = data_l[:, 2]
-        ispline_l = Ispline(v_l, order, knots)'
+        ispline_l = Ispline(v_l, spl_order, knots)'
         (n_l, x_l, ispline_l)
     else
         nothing
@@ -49,7 +49,7 @@ function PIC_data_reorgnz(data, order, knots)
     right_cens = if n_r > 0
         x_r = hcat(eachcol(data_r[:, 4:end])...)
         u_r = data_r[:, 1]
-        ispline_r = Ispline(u_r, order, knots)'
+        ispline_r = Ispline(u_r, spl_order, knots)'
         (n_r, x_r, ispline_r)
     else
         nothing
@@ -62,8 +62,8 @@ function PIC_data_reorgnz(data, order, knots)
         x_i = hcat(eachcol(data_i[:, 4:end])...)
         u_i = data_i[:, 1]
         v_i = data_i[:, 2]
-        ispline_iu = Ispline(u_i, order, knots)'
-        ispline_iv = Ispline(v_i, order, knots)'
+        ispline_iu = Ispline(u_i, spl_order, knots)'
+        ispline_iv = Ispline(v_i, spl_order, knots)'
         (n_i, x_i, ispline_iu, ispline_iv)
     else
         nothing

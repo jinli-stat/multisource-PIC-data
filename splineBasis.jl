@@ -1,5 +1,5 @@
-function Ispline(x, order, knots)
-    degree = order + 1  
+function Ispline(x, spl_order, knots)
+    degree = spl_order + 1  
     num_knots = length(knots)
     num_basis = num_knots - 2 + degree    
 
@@ -16,7 +16,7 @@ function Ispline(x, order, knots)
     end
     
     rec_basis = basis_functions
-    for recursion_level = 1:order
+    for recursion_level = 1:spl_order
         next_basis = zeros(num_basis + degree - 1 - recursion_level, length(x))
         for i = (degree - recursion_level):num_basis
             factor = (recursion_level + 1) / recursion_level
@@ -38,28 +38,28 @@ function Ispline(x, order, knots)
     
     ispline_basis = zeros(num_basis - 1, length(x))
 
-    if order == 1 
+    if spl_order == 1 
         for i = 2:num_basis
-            ispline_basis[i - 1, :] = (i .< knot_indices .- order .+ 1) .+ 
+            ispline_basis[i - 1, :] = (i .< knot_indices .- spl_order .+ 1) .+ 
                             (i .== knot_indices) .* 
-                            (extended_knots[i + order + 1] - extended_knots[i]) .* 
-                            rec_basis[i, :] ./ (order + 1)
+                            (extended_knots[i + spl_order + 1] - extended_knots[i]) .* 
+                            rec_basis[i, :] ./ (spl_order + 1)
         end
     else
         for point_idx = 1:length(x)
             for basis_idx = 2:num_basis
-                if basis_idx < (knot_indices[point_idx] - order + 1)
+                if basis_idx < (knot_indices[point_idx] - spl_order + 1)
                     ispline_basis[basis_idx - 1, point_idx] = 1
-                elseif basis_idx >= (knot_indices[point_idx] - order + 1) && 
+                elseif basis_idx >= (knot_indices[point_idx] - spl_order + 1) && 
                        basis_idx <= knot_indices[point_idx]
                     start_idx = basis_idx
                     end_idx = Int(knot_indices[point_idx])
                     
                     left_knots = extended_knots[start_idx:end_idx]
-                    right_knots = extended_knots[(basis_idx + order + 1):Int(knot_indices[point_idx] + order + 1)]
+                    right_knots = extended_knots[(basis_idx + spl_order + 1):Int(knot_indices[point_idx] + spl_order + 1)]
                     
                     ispline_basis[basis_idx - 1, point_idx] = sum((right_knots - left_knots) .* 
-                            rec_basis[start_idx:end_idx, point_idx]) / (order + 1)
+                            rec_basis[start_idx:end_idx, point_idx]) / (spl_order + 1)
                 else
                     ispline_basis[basis_idx - 1, point_idx] = 0
                 end
@@ -71,8 +71,8 @@ function Ispline(x, order, knots)
 end
 
 
-function Mspline(x, order, knots)
-    degree = order 
+function Mspline(x, spl_order, knots)
+    degree = spl_order 
     num_knots = length(knots)  
     num_basis = num_knots - 2 + degree    
     
@@ -88,12 +88,12 @@ function Mspline(x, order, knots)
                               (extended_knots[i+1] - extended_knots[i])
     end
     
-    if order == 1
+    if spl_order == 1
         return basis_functions
     end
     
     rec_basis = basis_functions
-    for recursion_level = 1:(order-1)
+    for recursion_level = 1:(spl_order-1)
         next_basis = zeros(num_basis + degree - 1 - recursion_level, length(x))
         for i = (degree - recursion_level):num_basis
             factor = (recursion_level + 1) / recursion_level
