@@ -62,7 +62,7 @@ function local_estimator(data, mu_initial, gamma_initial, knots; spl_order=3, pe
         gamma = vars[p+1:end]
         alpha, data_reorgnz, xi = fixed_values
         if penalty == true
-            return -logliklhd_k(mu, alpha, gamma, data_reorgnz) + n * sum(scad_quadratic_approx.(mu, mu_initial, xi))
+            return -logliklhd_k(mu, alpha, gamma, data_reorgnz) + n * sum(scad_penalty.(mu, xi)) #sum(scad_quadratic_approx.(mu, mu_initial, xi))
         else
             return -logliklhd_k(mu, alpha, gamma, data_reorgnz)
         end
@@ -124,10 +124,10 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         end
         
         if penalty == true
-            pen_1 = n * sum(scad_quadratic_approx.(mu, mu_initial, xi_1))
-            alpha_alpha_initial_norm = map(norm, eachcol(alpha_initial))
+            pen_1 = n * sum(scad_penalty.(mu, xi_1))# sum(scad_quadratic_approx.(mu, mu_initial, xi_1))
+            # alpha_alpha_initial_norm = map(norm, eachcol(alpha_initial))
             alpha_norm = map(norm, eachcol(alpha_mat))
-            pen_2 = n * sum(scad_quadratic_approx.(alpha_norm, alpha_alpha_initial_norm, xi_2))
+            pen_2 = n * sum(scad_penalty.(alpha_norm,  xi_2))#sum(scad_quadratic_approx.(alpha_norm, alpha_alpha_initial_norm, xi_2))
             return -logliklhd_all + pen_1 + pen_2
         else
             return -logliklhd_all
@@ -166,8 +166,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         return this_result.mu, this_result.alpha ,this_result.gamma
     end
 
-    param1 = [0.0001,0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.3, 0.5, 0.7, 1.0]
-    param2 = [0.0001,0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.3, 0.5, 0.7, 1.0]
+    param1 = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1]
+    param2 = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1]
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     n_combinations = length(param_grid)
     tuning_results = Vector{optimization_result}(undef, n_combinations)
@@ -177,8 +177,6 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     end
     
     best_idx = argmin(map(r -> r.criterion, tuning_results))
-    println("Tuning parameters: ", param_grid[best_idx], " Criterion: ", tuning_results[best_idx].criterion)
     best_result = tuning_results[best_idx]
-
     return best_result.mu, best_result.alpha, best_result.gamma
 end

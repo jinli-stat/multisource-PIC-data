@@ -57,7 +57,7 @@ end
 
 
 
-Random.seed!(2025)
+Random.seed!(1111)
 data_1 = gen_pic_data(n, 0.2, beta_1, "case1")
 data_2 = gen_pic_data(n, 0.2, beta_2, "case1")
 data_3 = gen_pic_data(n, 0.2, beta_3, "case1")
