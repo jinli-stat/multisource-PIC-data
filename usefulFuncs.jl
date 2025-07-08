@@ -1,5 +1,27 @@
 using Distributions, Random, DataFrames
 
+function safe_exp(x)
+    return exp(clamp(x, -70.0, 70.0))
+end
+
+function safe_log(x)
+    return log(max(x, 1e-200))
+end
+
+function get_knots(arr, J0)
+    filtered_arr = filter(x -> x != 0 && isfinite(x), arr)
+    if isempty(filtered_arr)
+        return nothing
+    end
+    
+    max_value = quantile(filtered_arr, 0.975)
+    min_value = quantile(filtered_arr, 0.025)
+    
+    knots_J0 = range(min_value, max_value, length=J0)
+    knots_J0 = round.(knots_J0, digits=2)
+    return knots_J0
+end
+
 function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
     # status 1: exact observe; 2: left censored; 3: right censored; 4: interval censored
     # cum_base_hzd: 
@@ -7,7 +29,6 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
     #           case2: Λ_0 = 0.2*t^2  
     p = length(true_beta)
     cov_matrix = [0.5^abs(i-j) for i in 1:p, j in 1:p]
-    cov_matrix[cov_matrix.<=10e-5] .= 0
     inv_Lambda0 = if cum_base_hzd == "case1"
         x -> x / 0.5
     elseif cum_base_hzd == "case2"
@@ -18,20 +39,20 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
 
     mean_vector = zeros(p)
     x = rand(MvNormal(mean_vector, cov_matrix), n)'
-    x[:, 2] = rand(Binomial(1, 0.5), n)
-    x[:, 4] = rand(Binomial(1, 0.5), n)
-    x[:, 6] = rand(Binomial(1, 0.5), n)
-    risk_score =  exp.(x * true_beta)
+    # x[:, 2] = rand(Binomial(1, 0.5), n)
+    # x[:, 4] = rand(Binomial(1, 0.5), n)
+    # x[:, 6] = rand(Binomial(1, 0.5), n)
+    risk_score =  safe_exp.(x * true_beta)
     true_time = inv_Lambda0.(rand(Exponential(1), n) ./ risk_score)
     obv_point = 1 .+ rand(Poisson(4), n)
 
     u = fill(0.0, n)
     v = fill(0.0, n)
     status = fill(4, n)
-    ind = sample(1:n, Int(round(n * exact_rate, digits = 0)), replace = false) |> sort
+    ind = sample(1:n, round(Int, n * exact_rate), replace = false) |> sort
 
     for i = 1:n
-        if (i in ind) & (true_time[i]<=15)
+        if (i in ind) && (true_time[i]<=15)
             u[i] = true_time[i]
             v[i] = true_time[i]
             status[i] = 1
