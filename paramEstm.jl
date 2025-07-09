@@ -169,7 +169,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         penalty_fun = penalty_gselo
     elseif penalty == "scad"
         penalty_fun = penalty_scad
-    elseif penalty == "mcp"
+    elseif penalty == "mcp"302
         penalty_fun = penalty_mcp
     elseif penalty == "mic"
         penalty_fun = penalty_mic

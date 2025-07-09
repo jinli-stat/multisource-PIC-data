@@ -1,8 +1,8 @@
 using Pkg; Pkg.activate(".")
 
-Pkg.add(["DataFrames", "LinearAlgebra", "CSV"])
-Pkg.add(["Statistics", "Random", "Distributions",])
-Pkg.add(["Optimization", "OptimizationNLopt", "ForwardDiff"])
+# Pkg.add(["DataFrames", "LinearAlgebra", "CSV"])
+# Pkg.add(["Statistics", "Random", "Distributions",])
+# Pkg.add(["Optimization", "OptimizationNLopt", "ForwardDiff"])
 
 # Pkg.instantiate()
 # using Chairmarks
@@ -33,7 +33,7 @@ beta_initial = fill(0.00, p);
 gamma_initial = fill(0.1, J0-2 + order);
 
 Random.seed!(1234)
-for i in 1:loop_num
+@time Threads.@threads for i in 1:loop_num
     data = gen_pic_data(n, 0.2, real_beta, "case1")
     knots = get_knots(vcat(data[:,1], data[:,2]), J0)
     beta_ini, gamma_ini = local_estimator(data, beta_initial, gamma_initial, knots; spl_order=order, penalty = "none")
