@@ -1,10 +1,15 @@
 using Pkg; Pkg.activate(".")
+
+Pkg.add(["DataFrames", "LinearAlgebra", "CSV"])
+Pkg.add(["Statistics", "Random", "Distributions",])
+Pkg.add(["Optimization", "OptimizationNLopt", "ForwardDiff"])
+
 # Pkg.instantiate()
 # using Chairmarks
 using CSV, LinearAlgebra
-include("multisource-PIC-data/liklhdFun.jl")
-include("multisource-PIC-data/paramEstm.jl")
-include("multisource-PIC-data/usefulFuncs.jl")
+include("liklhdFun.jl")
+include("paramEstm.jl")
+include("usefulFuncs.jl")
 
 J0 =10;
 p = 50;
