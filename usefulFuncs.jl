@@ -1,11 +1,15 @@
 using Distributions, Random, DataFrames
 
+const MAX_EXP = log(prevfloat(Inf))
+const MIN_EXP = -MAX_EXP
+const EPS_FLOAT64 = eps(Float64)
+
 function safe_exp(x)
-    return exp(clamp(x, -70.0, 70.0))
+    return exp(clamp(x, MIN_EXP, MAX_EXP))
 end
 
 function safe_log(x)
-    return log(max(x, 1e-200))
+    return log(max(x, EPS_FLOAT64))
 end
 
 function get_knots(arr, J0)
@@ -39,9 +43,9 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
 
     mean_vector = zeros(p)
     x = rand(MvNormal(mean_vector, cov_matrix), n)'
-    # x[:, 2] = rand(Binomial(1, 0.5), n)
-    # x[:, 4] = rand(Binomial(1, 0.5), n)
-    # x[:, 6] = rand(Binomial(1, 0.5), n)
+    x[:, 2] = rand(Binomial(1, 0.5), n)
+    x[:, 4] = rand(Binomial(1, 0.5), n)
+    x[:, 6] = rand(Binomial(1, 0.5), n)
     risk_score =  safe_exp.(x * true_beta)
     true_time = inv_Lambda0.(rand(Exponential(1), n) ./ risk_score)
     obv_point = 1 .+ rand(Poisson(4), n)
