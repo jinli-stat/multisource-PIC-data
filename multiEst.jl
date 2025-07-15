@@ -1,7 +1,7 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra, Logging
 
-function BayIC2(data_reorgnz_val, mu_val, alpha_val, gamma_val, n)
+function BayIC2(data_reorgnz_val, mu_val, alpha_val, gamma_val, n, k)
     logliklhd_all = sum(1:k) do i
             logliklhd_k(mu_val + alpha_val[:, i], gamma_val, data_reorgnz_val[i])
     end
@@ -94,7 +94,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
             stopval=1e-5,
             ftol_rel=1e-5,
             xtol_abs=1e-5,
-            maxeval=1000)
+            maxeval=5000)
 
         mu_hat = sol.u[1:p]
     
@@ -104,7 +104,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         alpha_hat = reshape(alpha_hat, p, k)
         alpha_hat[abs.(alpha_hat).<=1e-3] .= 0.0
         gamma_hat = sol.u[(k+1)*p+1:end]
-        DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n)
+        DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
         # println(DF)
         return optimization_result(xi_1, xi_2, DF, mu_hat, alpha_hat, gamma_hat)
     end
@@ -119,6 +119,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         this_result = evaluate_tuning_param(log(n), log(n))
         return this_result.mu, this_result.alpha, this_result.gamma
     else
+        # param1 = [0.005]
+        # param2 = [0.005]
         param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
         param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
     end
