@@ -12,6 +12,37 @@ function safe_log(x)
     return log(max(x, EPS_FLOAT64))
 end
 
+function penalty_scad(beta_hat, tuning_param)
+    a_val = 3.7
+    abs_beta_hat = abs(beta_hat)
+    if abs_beta_hat <= tuning_param
+        return tuning_param * abs_beta_hat
+    elseif tuning_param < abs_beta_hat <= a_val * tuning_param
+        return (2 * a_val * tuning_param * abs_beta_hat - beta_hat^2 - tuning_param^2) / (2 * (a_val - 1))
+    else
+        return (tuning_param^2 * (a_val + 1)) / 2
+    end
+end
+
+function penalty_mcp(beta_hat, tuning_param)
+    a = 2.8
+    abs_beta = abs(beta_hat)
+    if abs_beta <= a * tuning_param
+        return tuning_param * abs_beta - abs_beta^2 / (2 * a)
+    else
+        return (tuning_param^2 * a) / 2
+    end
+end
+
+function penalty_gselo(beta_hat, tuning_param)
+    return 1 - safe_exp(-tuning_param * (beta_hat^2))
+end
+
+function penalty_mic(beta_hat, tuning_param)
+    temp_val = safe_exp(2 * tuning_param * beta_hat^2)
+    return (temp_val - 1.0) / (temp_val + 1.0)
+end
+
 function get_knots(arr, J0)
     filtered_arr = filter(x -> x != 0 && isfinite(x), arr)
     if isempty(filtered_arr)
