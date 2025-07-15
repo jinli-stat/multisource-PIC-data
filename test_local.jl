@@ -9,10 +9,10 @@ Pkg.activate(".");
 
 using CSV, LinearAlgebra, BenchmarkTools
 include("liklhdFun.jl")
-include("paramEstm.jl")
 include("usefulFuncs.jl")
+include("locEstm.jl")
 
-function simulation(n, real_beta, seed_val; loop_num=100, J0=10, order=2)
+function simulation(n, real_beta; loop_num=100, J0=10, order=2)
     p = size(real_beta, 1)
     real_beta_1 = Int.(.!iszero.(real_beta))
     real_beta_0 = Int.(iszero.(real_beta))
@@ -24,7 +24,6 @@ function simulation(n, real_beta, seed_val; loop_num=100, J0=10, order=2)
     beta_initial = fill(0.00, p)
     gamma_initial = fill(0.1, J0 - 2 + order)
 
-    Random.seed!(seed_val)
     Threads.@threads for i in 1:loop_num
         data = gen_pic_data(n, 0.2, real_beta, "case1")
         knots = get_knots(vcat(data[:, 1], data[:, 2]), J0)
@@ -57,10 +56,12 @@ real_beta2 = real_mu + real_alpha2 # 0.5, 0.5, 0.0, 0.0, 0.5, 0.5
 real_beta3 = real_mu + real_alpha3 # 0.5, 0.5, 0.0, 0.0, -0.5, -0.5
 real_beta4 = real_mu + real_alpha4 # 0.5, 0.5, 0.6, 0.6, -0.5, -0.5
 
-println(simulation(n, real_beta1, 1234; loop_num=100, J0=10, order=2)[1])
-println(simulation(n, real_beta2, 1234; loop_num=100, J0=10, order=2)[1])
-println(simulation(n, real_beta3, 1234; loop_num=100, J0=10, order=2)[1])
-println(simulation(n, real_beta4, 1234; loop_num=100, J0=10, order=2)[1])
+Random.seed!(2025)
+
+println(simulation(n, real_beta1; J0=10, order=2)[1])
+println(simulation(n, real_beta2; J0=10, order=2)[1])
+println(simulation(n, real_beta3; J0=10, order=2)[1])
+println(simulation(n, real_beta4; J0=10, order=2)[1])
 
 
 

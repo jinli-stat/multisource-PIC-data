@@ -1,14 +1,17 @@
 using Optimization, OptimizationNLopt, ForwardDiff
-using Statistics, LinearAlgebra
+using Statistics, LinearAlgebra, Logging
 
 function BayIC2(data_reorgnz_val, mu_val, alpha_val, gamma_val, n)
-    logliklhd_all = mapreduce(+, 1:k) do i
-        logliklhd_k(mu_val + alpha_val[i, :], gamma_val, data_reorgnz_val[i])
+    logliklhd_all = sum(1:k) do i
+            logliklhd_k(mu_val + alpha_val[:, i], gamma_val, data_reorgnz_val[i])
     end
+
     non_zero_mu_count = count(!iszero, mu_val)
-    alpha_val_norm = map(norm, eachcol(alpha_val))
-    non_zero_alpha_count = count(!iszero, alpha_val_norm)
-    return -2 * logliklhd_all + (non_zero_mu_count + non_zero_alpha_count + size(gamma_val)[1]) * (log(n) + 2 * log(2 * size(mu_val)[1]))
+    non_zero_alpha_count = count(!iszero, alpha_val[:, 1:end-1])
+    # non_zero_alpha_count  = count(!iszero, map(norm, eachrow(alpha_val)))
+
+    DF = non_zero_mu_count + non_zero_alpha_count + size(gamma_val)[1]
+    return -2 * logliklhd_all + DF * (log(n) + 2 * log(size(mu_val)[1]))
 end
 
 struct optimization_result
@@ -20,12 +23,14 @@ struct optimization_result
     gamma::Vector{Float64}
 end
 
-function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, knots; spl_order=3, penalty="none")
+function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, knots; 
+                                spl_order=2, penalty="none")
     p = size(mu_initial, 1)
     n = sum(size(df, 1) for df in data)
     k = length(data)
-    alpha_initial = alpha_initial[1:(end-p)]
-    data_reorgnz = ()
+
+    alpha_initial = vec(alpha_initial)
+
     data_reorgnz = ntuple(i -> PIC_data_reorgnz(data[i], spl_order, knots), k)
 
     if penalty == "none"
@@ -41,39 +46,51 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     else
         error("Wrong name of penalty function!")
     end
-0
+
     function object_fun(vars, fixed_val)
         mu = vars[1:p]
-        gamma = vars[k*p+1:end]
-        alpha_flat = vars[p+1:p*k]
-        alpha_mat = reshape(alpha_flat, p, (k - 1))'
-        alpha_mat = vcat(alpha_mat, .-sum(alpha_mat, dims=1))
+        alpha_mat = reshape(vars[p+1:(k+1)*p], p, k)
+        gamma = vars[(k+1)*p+1:end]
         all_data, xi_1, xi_2 = fixed_val
 
-        logliklhd_all = mapreduce(+, 1:k) do i
-                logliklhd_k(mu + alpha_mat[i, :], gamma, all_data[i])
+        logliklhd_all = sum(1:k) do i
+            logliklhd_k(mu + alpha_mat[:, i], gamma, all_data[i])
         end
 
         if penalty == "none"
             return -logliklhd_all
         else
             pen_1 = n * sum(penalty_fun.(mu, xi_1))
-            alpha_norm = map(norm, eachcol(alpha_mat))
+            alpha_norm = map(norm, eachrow(alpha_mat))
             pen_2 = n * sum(penalty_fun.(alpha_norm, xi_2))
             return -logliklhd_all + pen_1 + pen_2
         end
     end
 
+    function equality_constraint(res, vars, fixed_val)
+        res .= sum(reshape(vars[p+1:(k+1)*p], p, k), dims=2)
+        return nothing
+    end
+
     function evaluate_tuning_param(xi_1, xi_2)
         x0 = vcat(mu_initial, alpha_initial, gamma_initial)
-        f = OptimizationFunction(object_fun, Optimization.AutoForwardDiff()) # AutoReverseDiff # AutoForwardDiff
-        lb = vcat(fill(-5, p * k), fill(0, size(gamma_initial)))
-        ub = vcat(fill(5, p * k), fill(5, size(gamma_initial)))
-        prob = OptimizationProblem(f, x0, (data_reorgnz, xi_1, xi_2), lb=lb, ub=ub)
-
+        adtype = Optimization.AutoForwardDiff()
+        f = OptimizationFunction(
+            object_fun, 
+            adtype;
+            cons = equality_constraint)
+        lb = vcat(fill(-5, p * (k+1)), fill(0, size(gamma_initial)))
+        ub = vcat(fill(5, p * (k+1)), fill(5, size(gamma_initial)))
+        constraint_bounds = zeros(p)
+        prob = OptimizationProblem(
+            f, x0, (data_reorgnz, xi_1, xi_2), 
+            lb=lb, 
+            ub=ub,
+            lcons = constraint_bounds,
+            ucons = constraint_bounds)
         sol = solve(
             prob,
-            NLopt.LD_LBFGS(),
+            NLopt.LD_SLSQP(), # NLopt.LD_SLSQP(), NLopt.LD_AUGLAG()
             stopval=1e-5,
             ftol_rel=1e-5,
             xtol_abs=1e-5,
@@ -81,14 +98,14 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
 
         mu_hat = sol.u[1:p]
     
-        mu_hat[abs.(mu_hat).<=1e-5] .= 0.0
-        alpha_hat = sol.u[p+1:p*k]
+        mu_hat[abs.(mu_hat).<=1e-3] .= 0.0
+        alpha_hat = sol.u[p+1:p*(k+1)]
         
-        alpha_hat = reshape(alpha_hat, p, (k - 1))'
-        alpha_hat[abs.(alpha_hat).<=1e-5] .= 0.0
-        alpha_hat = vcat(alpha_hat, .-sum(alpha_hat, dims=1))
-        gamma_hat = sol.u[k*p+1:end]
+        alpha_hat = reshape(alpha_hat, p, k)
+        alpha_hat[abs.(alpha_hat).<=1e-3] .= 0.0
+        gamma_hat = sol.u[(k+1)*p+1:end]
         DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n)
+        # println(DF)
         return optimization_result(xi_1, xi_2, DF, mu_hat, alpha_hat, gamma_hat)
     end
 
@@ -102,8 +119,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         this_result = evaluate_tuning_param(log(n), log(n))
         return this_result.mu, this_result.alpha, this_result.gamma
     else
-        param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.13, 0.25, 0.5]
-        param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.13, 0.25, 0.5]
+        param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
+        param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
     end
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     n_combinations = length(param_grid)
@@ -112,12 +129,14 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         xi_1, xi_2 = param_grid[i]
         tuning_results[i] = evaluate_tuning_param(xi_1, xi_2)
     end
-
+    # suppressed_logger = SimpleLogger(stderr, Logging.Error)
+    # with_logger(suppressed_logger) do
+        
+    # end
+    
     best_idx = argmin(map(r -> r.criterion, tuning_results))
     best_result = tuning_results[best_idx]
     result_mu = best_result.mu
-    result_mu[abs.(result_mu).<=0.01] .= 0.0
     result_alpha = best_result.alpha
-    result_alpha[abs.(result_alpha).<=0.02] .= 0.0
     return result_mu, result_alpha, best_result.gamma
 end
