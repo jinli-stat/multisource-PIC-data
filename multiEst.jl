@@ -113,7 +113,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         this_result = evaluate_tuning_param(1.0, 1.0)
         return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "gselo"
-        this_result = evaluate_tuning_param(n, n)
+        this_result = evaluate_tuning_param(log(n), log(n))
         return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "mic"
         this_result = evaluate_tuning_param(log(n), log(n))
