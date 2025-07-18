@@ -11,13 +11,15 @@ function BayIC2(data_reorgnz_val, mu_val, alpha_val, gamma_val, n, k)
     # non_zero_alpha_count  = count(!iszero, map(norm, eachrow(alpha_val)))
 
     DF = non_zero_mu_count + non_zero_alpha_count + size(gamma_val)[1]
-    return -2 * logliklhd_all + DF * (log(n) + 2 * log(size(mu_val)[1]))
+    criterion = -2 * logliklhd_all + DF * (log(n) + 2 * log(size(mu_val)[1]))
+    return criterion, DF
 end
 
 struct optimization_result
     xi_1::Float64
     xi_2::Float64
     criterion::Float64
+    DF::Float64
     mu::Vector{Float64}
     alpha::AbstractArray{Float64}
     gamma::Vector{Float64}
@@ -28,7 +30,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     p = size(mu_initial, 1)
     n = sum(size(df, 1) for df in data)
     k = length(data)
-
+    J0 = size(gamma_initial)[1]
     alpha_initial = vec(alpha_initial)
 
     data_reorgnz = ntuple(i -> PIC_data_reorgnz(data[i], spl_order, knots), k)
@@ -91,9 +93,9 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         sol = solve(
             prob,
             NLopt.LD_SLSQP(), # NLopt.LD_SLSQP(), NLopt.LD_AUGLAG()
-            stopval=1e-5,
-            ftol_rel=1e-5,
-            xtol_abs=1e-5,
+            stopval=1e-4,
+            ftol_rel=1e-4,
+            xtol_abs=1e-4,
             maxeval=5000)
 
         mu_hat = sol.u[1:p]
@@ -104,19 +106,18 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         alpha_hat = reshape(alpha_hat, p, k)
         alpha_hat[abs.(alpha_hat).<=1e-3] .= 0.0
         gamma_hat = sol.u[(k+1)*p+1:end]
-        DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
-        # println(DF)
-        return optimization_result(xi_1, xi_2, DF, mu_hat, alpha_hat, gamma_hat)
+        criterion, DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
+        return optimization_result(xi_1, xi_2, criterion, DF, mu_hat, alpha_hat, gamma_hat)
     end
 
     if penalty == "none"
         this_result = evaluate_tuning_param(1.0, 1.0)
         return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "gselo"
-        this_result = evaluate_tuning_param(log(n), log(n))
+        this_result = evaluate_tuning_param(n, n)
         return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "mic"
-        this_result = evaluate_tuning_param(log(n), log(n))
+        this_result = evaluate_tuning_param(n, n)
         return this_result.mu, this_result.alpha, this_result.gamma
     else
         # param1 = [0.005]
@@ -130,12 +131,14 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     for i in 1:n_combinations
         xi_1, xi_2 = param_grid[i]
         tuning_results[i] = evaluate_tuning_param(xi_1, xi_2)
+        # println("$xi_1, $xi_2, $(tuning_results[i].criterion), $(tuning_results[i].DF)")
     end
     # suppressed_logger = SimpleLogger(stderr, Logging.Error)
     # with_logger(suppressed_logger) do
         
     # end
-    
+
+    filter!(x -> x.DF < J0+(k-1)*p, tuning_results)
     best_idx = argmin(map(r -> r.criterion, tuning_results))
     best_result = tuning_results[best_idx]
     result_mu = best_result.mu
