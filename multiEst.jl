@@ -45,6 +45,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         penalty_fun = penalty_mcp
     elseif penalty == "mic"
         penalty_fun = penalty_mic
+        n_k = n/k
     else
         error("Wrong name of penalty function!")
     end
@@ -96,7 +97,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
             stopval=1e-4,
             ftol_rel=1e-4,
             xtol_abs=1e-4,
-            maxeval=5000)
+            maxeval=10000)
 
         mu_hat = sol.u[1:p]
     
@@ -117,7 +118,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         this_result = evaluate_tuning_param(n, n)
         return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "mic"
-        this_result = evaluate_tuning_param(n, n)
+        this_result = evaluate_tuning_param(n_k, n_k)
         return this_result.mu, this_result.alpha, this_result.gamma
     else
         # param1 = [0.005]
