@@ -37,20 +37,27 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
 
     if penalty == "none"
         # Do nothing
-    elseif penalty == "gselo"
-        penalty_fun = penalty_gselo
     elseif penalty == "scad"
         penalty_fun = penalty_scad
     elseif penalty == "mcp"
         penalty_fun = penalty_mcp
     elseif penalty == "mic"
         penalty_fun = penalty_mic
-        n_k = n/k
     else
         error("Wrong name of penalty function!")
     end
+     if  penalty == "mic"
+        tol = 1e-3
+        tol2 = 0.2
+        max_eval = 5000
+     else
+        tol = 1e-3
+        tol2 = 0.01
+        max_eval = 5000
+     end
 
     function object_fun(vars, fixed_val)
+        vars_proj = map(x -> abs(x) < 0.01 ? 0.0 : x, vars)
         mu = vars[1:p]
         alpha_mat = reshape(vars[p+1:(k+1)*p], p, k)
         gamma = vars[(k+1)*p+1:end]
@@ -62,7 +69,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
 
         if penalty == "none"
             return -logliklhd_all
-        else
+        else 
             pen_1 = n * sum(penalty_fun.(mu, xi_1))
             alpha_norm = map(norm, eachrow(alpha_mat))
             pen_2 = n * sum(penalty_fun.(alpha_norm, xi_2))
@@ -94,18 +101,16 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         sol = solve(
             prob,
             NLopt.LD_SLSQP(), # NLopt.LD_SLSQP(), NLopt.LD_AUGLAG()
-            stopval=1e-4,
-            ftol_rel=1e-4,
-            xtol_abs=1e-4,
-            maxeval=10000)
+            xtol_abs = tol, 
+            maxeval = max_eval)
 
         mu_hat = sol.u[1:p]
     
-        mu_hat[abs.(mu_hat).<=1e-3] .= 0.0
+        mu_hat[abs.(mu_hat).<=tol2] .= 0.0
         alpha_hat = sol.u[p+1:p*(k+1)]
         
         alpha_hat = reshape(alpha_hat, p, k)
-        alpha_hat[abs.(alpha_hat).<=1e-3] .= 0.0
+        alpha_hat[abs.(alpha_hat).<=tol2] .= 0.0
         gamma_hat = sol.u[(k+1)*p+1:end]
         criterion, DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
         return optimization_result(xi_1, xi_2, criterion, DF, mu_hat, alpha_hat, gamma_hat)
@@ -114,11 +119,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     if penalty == "none"
         this_result = evaluate_tuning_param(1.0, 1.0)
         return this_result.mu, this_result.alpha, this_result.gamma
-    elseif penalty == "gselo"
-        this_result = evaluate_tuning_param(n, n)
-        return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "mic"
-        this_result = evaluate_tuning_param(n_k, n_k)
+        this_result = evaluate_tuning_param(n, n)
         return this_result.mu, this_result.alpha, this_result.gamma
     else
         # param1 = [0.005]
