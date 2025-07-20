@@ -57,8 +57,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
      end
 
     function object_fun(vars, fixed_val)
-        vars_proj = map(x -> abs(x) < 0.01 ? 0.0 : x, vars)
         mu = vars[1:p]
+        vars_proj = map(x -> abs(x) < 0.01 ? 0.0 : x, mu)
         alpha_mat = reshape(vars[p+1:(k+1)*p], p, k)
         gamma = vars[(k+1)*p+1:end]
         all_data, xi_1, xi_2 = fixed_val
