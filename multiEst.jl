@@ -46,19 +46,15 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     else
         error("Wrong name of penalty function!")
     end
-     if  penalty == "mic"
-        tol = 1e-3
-        tol2 = 0.2
-        max_eval = 5000
-     else
-        tol = 1e-3
-        tol2 = 0.01
-        max_eval = 5000
-     end
+    if  penalty == "mic"
+        thsh = 0.2
+    else
+        thsh = 0.1
+    end
 
     function object_fun(vars, fixed_val)
+
         mu = vars[1:p]
-        vars_proj = map(x -> abs(x) < 0.01 ? 0.0 : x, mu)
         alpha_mat = reshape(vars[p+1:(k+1)*p], p, k)
         gamma = vars[(k+1)*p+1:end]
         all_data, xi_1, xi_2 = fixed_val
@@ -101,16 +97,17 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         sol = solve(
             prob,
             NLopt.LD_SLSQP(), # NLopt.LD_SLSQP(), NLopt.LD_AUGLAG()
-            xtol_abs = tol, 
-            maxeval = max_eval)
+            xtol_abs=1e-3,
+            ftol_abs=0.1,
+            maxeval = 10000)
 
         mu_hat = sol.u[1:p]
     
-        mu_hat[abs.(mu_hat).<=tol2] .= 0.0
+        mu_hat[abs.(mu_hat).<=thsh] .= 0.0
         alpha_hat = sol.u[p+1:p*(k+1)]
         
         alpha_hat = reshape(alpha_hat, p, k)
-        alpha_hat[abs.(alpha_hat).<=tol2] .= 0.0
+        alpha_hat[abs.(alpha_hat).<=thsh] .= 0.0
         gamma_hat = sol.u[(k+1)*p+1:end]
         criterion, DF = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
         return optimization_result(xi_1, xi_2, criterion, DF, mu_hat, alpha_hat, gamma_hat)
@@ -123,8 +120,6 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         this_result = evaluate_tuning_param(n, n)
         return this_result.mu, this_result.alpha, this_result.gamma
     else
-        # param1 = [0.005]
-        # param2 = [0.005]
         param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
         param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
     end
@@ -136,10 +131,6 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         tuning_results[i] = evaluate_tuning_param(xi_1, xi_2)
         # println("$xi_1, $xi_2, $(tuning_results[i].criterion), $(tuning_results[i].DF)")
     end
-    # suppressed_logger = SimpleLogger(stderr, Logging.Error)
-    # with_logger(suppressed_logger) do
-        
-    # end
 
     filter!(x -> x.DF < J0+(k-1)*p, tuning_results)
     best_idx = argmin(map(r -> r.criterion, tuning_results))
