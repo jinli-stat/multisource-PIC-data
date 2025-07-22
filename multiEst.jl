@@ -98,8 +98,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
             prob,
             NLopt.LD_SLSQP(), # NLopt.LD_SLSQP(), NLopt.LD_AUGLAG()
             xtol_abs=1e-3,
-            ftol_abs=0.1,
-            maxeval = 10000)
+            # ftol_abs=0.5,
+            maxeval = 5000)
 
         mu_hat = sol.u[1:p]
     
