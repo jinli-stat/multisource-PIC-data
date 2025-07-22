@@ -33,40 +33,50 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
         error("Wrong name of penalty function!")
     end
 
+    if  penalty == "mic1" || penalty == "mic2"
+        thsh = 0.2
+    else
+        thsh = 0.1
+    end
+
     function object_fun(vars, fixed_values)
         beta = vars[1:p]
-        beta[abs.(beta).<=0.01] .= 0.0
         gamma = vars[p+1:end]
         data_reorgnz, xi = fixed_values
-        if penalty == "none"
-            object_fun_val = -logliklhd_k(beta, gamma, data_reorgnz)
-        elseif penalty == "mic1"
-            object_fun_val = return -logliklhd_k(beta .* penalty_fun.(beta, xi), gamma, data_reorgnz) + log(n) * sum(penalty_fun.(beta, xi))
-        elseif penalty == "mic2"
-            object_fun_val = return -logliklhd_k(beta, gamma, data_reorgnz) + n * sum(penalty_fun.(beta, xi))
+        if penalty == "mic1"
+            neg_logliklhd_k = -logliklhd_k(beta .* penalty_fun.(beta, xi), gamma, data_reorgnz)
         else
-            object_fun_val = return -logliklhd_k(beta, gamma, data_reorgnz) + n * sum(penalty_fun.(beta, xi))
+            neg_logliklhd_k = -logliklhd_k(beta, gamma, data_reorgnz)
+        end
+        
+        if penalty == "none"
+            object_fun_val = neg_logliklhd_k
+        elseif penalty == "mic1"
+            object_fun_val = neg_logliklhd_k + log(n) * sum(penalty_fun.(beta, xi))
+        else
+            object_fun_val = neg_logliklhd_k + n * sum(penalty_fun.(beta, xi))
         end
         return object_fun_val
     end
 
     function evaluate_tuning_param(xi)
         x0 = vcat(beta_initial, gamma_initial)
-        f = OptimizationFunction(object_fun, Optimization.AutoForwardDiff())
+        adtype = Optimization.AutoForwardDiff()
+        f = OptimizationFunction(object_fun, adtype)
         lb = vcat(fill(-5, p), fill(0, size(gamma_initial)))
         ub = vcat(fill(5, p), fill(5, size(gamma_initial)))
         prob = OptimizationProblem(f, x0, (data_reorgnz, xi), lb=lb, ub=ub)
 
         sol = solve(prob,
-            NLopt.LD_LBFGS(),
-            xtol_abs=1e-3,
-            maxeval=10000)
-
+            NLopt.LD_SLSQP(),#.LD_LBFGS()
+            xtol_abs = 1e-3,
+            ftol_abs = 0.1,
+            maxeval = 10000)
         beta_hat = sol.u[1:p]
         if penalty == "mic1"
             beta_hat = beta_hat .* penalty_fun.(beta_hat, xi)
         end
-        beta_hat[abs.(beta_hat).<=0.001] .= 0.0
+        beta_hat[abs.(beta_hat).<=thsh] .= 0.0
         gamma_hat = sol.u[p+1:end]
         BIC_val = BayIC(data_reorgnz, beta_hat, gamma_hat, n)
 
@@ -80,7 +90,7 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
         results = evaluate_tuning_param(n)
         return results.beta, results.gamma
     else
-        param_grid = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.15]
+        param_grid = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.15, 0.2, 0.5]
         # param_grid = [0.05, 0.07, 0.09, 0.1]
         # param_grid = [0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
     end
