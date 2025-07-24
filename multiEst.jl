@@ -46,11 +46,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     else
         error("Wrong name of penalty function!")
     end
-    if  penalty == "mic"
-        thsh = 0.2
-    else
-        thsh = 0.1
-    end
+
+    thsh = 0.1
 
     function object_fun(vars, fixed_val)
 
@@ -97,8 +94,8 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         sol = solve(
             prob,
             NLopt.LD_SLSQP(), # NLopt.LD_SLSQP(), NLopt.LD_AUGLAG()
-            xtol_abs=1e-3,
-            # ftol_abs=0.5,
+            xtol_abs = 1e-2,
+            ftol_abs = 4,
             maxeval = 5000)
 
         mu_hat = sol.u[1:p]
@@ -129,6 +126,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     for i in 1:n_combinations
         xi_1, xi_2 = param_grid[i]
         tuning_results[i] = evaluate_tuning_param(xi_1, xi_2)
+        print("#")
         # println("$xi_1, $xi_2, $(tuning_results[i].criterion), $(tuning_results[i].DF)")
     end
 

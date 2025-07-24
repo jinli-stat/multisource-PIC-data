@@ -33,11 +33,7 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
         error("Wrong name of penalty function!")
     end
 
-    if  penalty == "mic1" || penalty == "mic2"
-        thsh = 0.2
-    else
-        thsh = 0.1
-    end
+    thsh = 0.1
 
     function object_fun(vars, fixed_values)
         beta = vars[1:p]
@@ -68,10 +64,10 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
         prob = OptimizationProblem(f, x0, (data_reorgnz, xi), lb=lb, ub=ub)
 
         sol = solve(prob,
-            NLopt.LD_SLSQP(),#.LD_LBFGS()
+            NLopt.LD_SLSQP(),
             xtol_abs = 1e-3,
-            ftol_abs = 0.1,
-            maxeval = 10000)
+            ftol_abs = 1,
+            maxeval = 5000)
         beta_hat = sol.u[1:p]
         if penalty == "mic1"
             beta_hat = beta_hat .* penalty_fun.(beta_hat, xi)
@@ -90,9 +86,7 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
         results = evaluate_tuning_param(n)
         return results.beta, results.gamma
     else
-        param_grid = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.15, 0.2, 0.5]
-        # param_grid = [0.05, 0.07, 0.09, 0.1]
-        # param_grid = [0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
+        param_grid = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.15, 0.2]
     end
 
     n_combinations = length(param_grid)
