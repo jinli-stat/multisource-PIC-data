@@ -114,7 +114,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
         this_result = evaluate_tuning_param(1.0, 1.0)
         return this_result.mu, this_result.alpha, this_result.gamma
     elseif penalty == "mic"
-        this_result = evaluate_tuning_param(n, n)
+        this_result = evaluate_tuning_param(n/k, n/k)
         return this_result.mu, this_result.alpha, this_result.gamma
     else
         param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.15]
@@ -126,7 +126,7 @@ function multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, k
     for i in 1:n_combinations
         xi_1, xi_2 = param_grid[i]
         tuning_results[i] = evaluate_tuning_param(xi_1, xi_2)
-        print("#")
+        # print("#")
         # println("$xi_1, $xi_2, $(tuning_results[i].criterion), $(tuning_results[i].DF)")
     end
 
