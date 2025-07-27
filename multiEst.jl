@@ -132,15 +132,15 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
         return evaluate_tuning_param(1.0, 1.0)
     elseif penalty == "mic2"
         # return evaluate_tuning_param(100,100)
-        param1 = [n/k, n/2, n]
-        param2 = [n/k, n/2, n]
+        param1 = [n/2, n]
+        param2 = [n/2, n]
     elseif penalty == "mic1"
-        param1 = [0.001, 0.003, 0.005, 0.007, 0.009]
-        param2 = [0.001, 0.005, 0.007, 0.01, 0.05]
+        param1 = [0.005, 0.007, 0.01, 0.05, 0.1]
+        param2 = [0.005, 0.007, 0.01, 0.05, 0.1]
     else
         param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.2]
         param2 = [0.01, 0.03, 0.05, 0.07, 0.1, 0.3, 0.5, 0.7]
-    end
+    end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     
     tuning_results = [evaluate_tuning_param(xi_1, xi_2) for (xi_1, xi_2) in param_grid]
