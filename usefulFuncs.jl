@@ -12,6 +12,22 @@ function safe_log(x)
     return log(max(x, EPS_FLOAT64))
 end
 
+function process_alpha_value!(mat::AbstractMatrix{<:Real}; threshold=0.05)
+    
+    mat[abs.(mat) .< threshold] .= 0.0
+
+    for i in 1:size(mat, 1)
+        row = mat[i, :]
+        nonzero_idx = abs.(row) .!= 0 
+        if any(nonzero_idx)
+            row_mean = mean(row[nonzero_idx])
+            mat[i, nonzero_idx] .-= row_mean
+        end
+    end
+    return mat
+end
+
+
 function penalty_scad(beta_hat, tuning_param)
     a_val = 3.7
     abs_beta_hat = abs(beta_hat)
