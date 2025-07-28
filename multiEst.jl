@@ -1,21 +1,22 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra, Logging
 
-function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.05)
+function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.01)
     mu_copy = copy(mu)
     alpha_copy = copy(alpha)
-    # alpha_copy_norm = map(norm, eachrow(alpha_copy))
+    alpha_copy_norm = map(norm, eachrow(alpha_copy))
     mu_copy[abs.(mu_copy) .<= thsh] .= 0.0
-    alpha_copy[abs.(alpha_copy) .<= thsh] .= 0.0
+    alpha_copy_norm[abs.(alpha_copy_norm) .<= thsh] .= 0.0
     loglik = sum(1:k) do i
         logliklhd_k(mu_copy + alpha_copy[:, i], gamma, data_reorgnz[i])
     end
 
     deg_freed = count(!iszero, mu_copy) + 
-         count(!iszero, alpha_copy[:, 1:end-1]) +
+         count(!iszero, alpha_copy_norm) +
          size(gamma, 1)
 
     # count(!iszero, alpha_copy_norm) + 
+    # count(!iszero, alpha_copy[:, 1:end-1]) +
     criterion = -2 * loglik + deg_freed * (log(n) + log(size(mu_copy, 1)))
 
     return criterion, deg_freed
@@ -129,15 +130,15 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
     if penalty == "none"
         return evaluate_tuning_param(1.0, 1.0)
     elseif penalty == "mic2"
-        return evaluate_tuning_param(n/100,n/100)
+        return evaluate_tuning_param(n/50,n/50)
         # param1 = [n/2, n]
         # param2 = [n/2, n]
     elseif penalty == "mic1"
         param1 = [0.001, 0.005, 0.01, 0.05, 0.1]
         param2 = [0.001, 0.005, 0.01, 0.05, 0.1]
     else
-        param1 = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.3]
-        param2 = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.3]
+        param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
+        param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
     end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     
