@@ -1,7 +1,7 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra, Logging
 
-function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.01)
+function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.05)
     mu_copy = copy(mu)
     alpha_copy = copy(alpha)
     alpha_copy_norm = map(norm, eachrow(alpha_copy))
@@ -137,8 +137,10 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
         param1 = [0.001, 0.005, 0.01, 0.05, 0.1]
         param2 = [0.001, 0.005, 0.01, 0.05, 0.1]
     else
-        param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
-        param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
+        # param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
+        # param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
+        param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5]
+        param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5]
     end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     
