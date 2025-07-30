@@ -1,23 +1,47 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra, Logging
 
-function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.05)
-    mu_copy = copy(mu)
-    alpha_copy = copy(alpha)
-    alpha_copy_norm = map(norm, eachrow(alpha_copy))
-    mu_copy[abs.(mu_copy) .<= thsh] .= 0.0
-    alpha_copy_norm[abs.(alpha_copy_norm) .<= thsh] .= 0.0
+# function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.01)
+#     mu_copy = copy(mu)
+#     alpha_copy = copy(alpha)
+#     alpha_copy_norm = map(norm, eachrow(alpha_copy))
+#     mu_copy[abs.(mu_copy) .<= thsh] .= 0.0
+#     alpha_copy_norm[abs.(alpha_copy_norm) .<= thsh] .= 0.0
+#     loglik = sum(1:k) do i
+#         logliklhd_k(mu_copy + alpha_copy[:, i], gamma, data_reorgnz[i])
+#     end
+
+#     deg_freed = count(!iszero, mu_copy) + 
+#          count(!iszero, alpha_copy_norm) +
+#          size(gamma, 1)
+
+#     criterion = -2 * loglik + deg_freed * (log(n) + 2*log(size(mu_copy, 1)))
+
+#     return criterion, deg_freed
+# end
+
+function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.1)
+    # mu_copy = copy(mu)
+    # alpha_copy = copy(alpha)
+    # alpha_copy_norm = map(norm, eachrow(alpha_copy))
+    # mu_copy[abs.(mu_copy) .<= thsh] .= 0.0
+    # alpha_copy_norm[abs.(alpha_copy_norm) .<= thsh] .= 0.0
+    mu[abs.(mu) .<= thsh] .= 0.0
+    beta = mu .+ alpha
+    beta[abs.(beta).<=thsh] .= 0.0
+    alpha_norm = map(norm, eachrow(alpha))
+    alpha_norm[abs.(alpha_norm) .<= thsh] .= 0.0
     loglik = sum(1:k) do i
-        logliklhd_k(mu_copy + alpha_copy[:, i], gamma, data_reorgnz[i])
+        logliklhd_k(beta[:, i], gamma, data_reorgnz[i])
     end
 
-    deg_freed = count(!iszero, mu_copy) + 
-         count(!iszero, alpha_copy_norm) +
+    deg_freed = count(!iszero, mu) + 
+         count(!iszero, alpha_norm) +
          size(gamma, 1)
 
-    # count(!iszero, alpha_copy_norm) + 
-    # count(!iszero, alpha_copy[:, 1:end-1]) +
-    criterion = -2 * loglik + deg_freed * (log(n) + log(size(mu_copy, 1)))
+    # count(!iszero, alpha_norm) + 
+    # count(!iszero, alpha[:, 1:end-1]) +
+    criterion = -2 * loglik + deg_freed * (log(n) + 2*log(size(mu, 1)))
 
     return criterion, deg_freed
 end
@@ -124,29 +148,33 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
 
         criterion, deg_freed = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
         # print("#")
+        # lll = (criterion - deg_freed * (log(n) + log(p)))/(-2)
+        # using Printf
+        
+        # println("xi_1 = $xi_1, xi_2 = $xi_2, criterion = $( @sprintf("%.2f", criterion) ), deg_freed = $deg_freed, likelhd = $( @sprintf("%.2f", lll) )")
         return optimization_result(xi_1, xi_2, criterion, deg_freed, mu_hat, alpha_hat, gamma_hat)
     end
 
     if penalty == "none"
         return evaluate_tuning_param(1.0, 1.0)
     elseif penalty == "mic2"
-        return evaluate_tuning_param(n/50,n/50)
+        return evaluate_tuning_param(n/50, n/50) #(n/50,n/50)
         # param1 = [n/2, n]
         # param2 = [n/2, n]
     elseif penalty == "mic1"
         param1 = [0.001, 0.005, 0.01, 0.05, 0.1]
         param2 = [0.001, 0.005, 0.01, 0.05, 0.1]
     else
-        # param1 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
-        # param2 = [0.005, 0.01, 0.03, 0.05, 0.07, 0.15, 0.3]
-        param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5]
-        param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5]
+        param1 = [0.001, 0.01, 0.03, 0.05, 0.1, 0.3]
+        param2 = [0.001, 0.01, 0.03, 0.05, 0.1, 0.3]
     end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     
     tuning_results = [evaluate_tuning_param(xi_1, xi_2) for (xi_1, xi_2) in param_grid]
-    # df_threshold = 2*p + J0 / 2
+
+    # df_threshold = 2*p + J0 - 5
     # filter!(x -> x.deg_freed < df_threshold, tuning_results)
+
     if isempty(tuning_results)
         error("No valid tuning parameters.")
     end
