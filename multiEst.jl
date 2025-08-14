@@ -46,10 +46,6 @@ function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.2)
     return criterion, deg_freed
 end
 
-function safe_value(x)
-    return any(isnan, x) ? Inf : x
-end
-
 struct optimization_result
     xi_1::Float64
     xi_2::Float64
@@ -158,15 +154,17 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
     if penalty == "none"
         return evaluate_tuning_param(1.0, 1.0)
     elseif penalty == "mic2"
-        return evaluate_tuning_param(n/50, n/50) #(n/50,n/50)
+        return evaluate_tuning_param(n/50, n/50)
         # param1 = [n/2, n]
         # param2 = [n/2, n]
     elseif penalty == "mic1"
         param1 = [0.001, 0.005, 0.01, 0.05, 0.1]
         param2 = [0.001, 0.005, 0.01, 0.05, 0.1]
     else
-        param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
-        param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+        param1 = [0.05, 0.1, 0.5]
+        param2 = [0.05, 0.1, 0.5]
+        # param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+        # param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
     end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     

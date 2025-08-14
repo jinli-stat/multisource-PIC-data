@@ -12,6 +12,10 @@ function safe_log(x)
     return log(max(x, EPS_FLOAT64))
 end
 
+function safe_value(x)
+    return any(isnan, x) ? Inf : x
+end
+
 function process_alpha_value!(mat::AbstractMatrix{<:Real}; threshold=0.05)
     
     mat[abs.(mat) .< threshold] .= 0.0
