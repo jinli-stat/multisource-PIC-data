@@ -122,7 +122,7 @@ function PIC_data_reorgnz(data, spl_order, knots)
         ispline_e = Ispline(t_e, spl_order, knots)'
         (n_e, x_e, mspline_e, ispline_e)
     else
-        nothing
+        (n_e, nothing, nothing, nothing)
     end
 
     # Left-censored data
@@ -134,7 +134,7 @@ function PIC_data_reorgnz(data, spl_order, knots)
         ispline_l = Ispline(v_l, spl_order, knots)'
         (n_l, x_l, ispline_l)
     else
-        nothing
+        (n_l, nothing, nothing)
     end
 
     # Right-censored data
@@ -146,7 +146,7 @@ function PIC_data_reorgnz(data, spl_order, knots)
         ispline_r = Ispline(u_r, spl_order, knots)'
         (n_r, x_r, ispline_r)
     else
-        nothing
+        (n_r, nothing, nothing)
     end
 
     # Interval-censored data
@@ -160,7 +160,7 @@ function PIC_data_reorgnz(data, spl_order, knots)
         ispline_iv = Ispline(v_i, spl_order, knots)'
         (n_i, x_i, ispline_iu, ispline_iv)
     else
-        nothing
+        (n_i, nothing, nothing, nothing)
     end
     
     return (exact_obs, left_cens, right_cens, interval_cens)

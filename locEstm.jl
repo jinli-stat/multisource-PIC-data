@@ -4,7 +4,7 @@ using Statistics, LinearAlgebra
 function BayIC(data_reorgnz_val, beta_val, gamma_val, n; thsh = 0.2)
     beta_val[abs.(beta_val) .<= thsh] .= 0.0
     lkhd = logliklhd_k(beta_val, gamma_val, data_reorgnz_val)
-    DF = count(!iszero, beta_val) + 1 * size(gamma_val)[1] # Here should be the number of basis functions, using the size of gamma for simplicity.
+    DF = count(!iszero, beta_val) + size(gamma_val)[1] # Here should be the number of basis functions, using the size of gamma for simplicity.
     return -2 * lkhd + DF * (log(n) + 2 * log(size(beta_val)[1]))
 end
 
@@ -33,8 +33,6 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
     else
         error("Wrong name of penalty function!")
     end
-
-    thsh = 0.1
 
     function object_fun(vars, fixed_values)
         beta = vars[1:p]

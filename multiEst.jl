@@ -1,25 +1,6 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra, Logging
 
-# function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.01)
-#     mu_copy = copy(mu)
-#     alpha_copy = copy(alpha)
-#     alpha_copy_norm = map(norm, eachrow(alpha_copy))
-#     mu_copy[abs.(mu_copy) .<= thsh] .= 0.0
-#     alpha_copy_norm[abs.(alpha_copy_norm) .<= thsh] .= 0.0
-#     loglik = sum(1:k) do i
-#         logliklhd_k(mu_copy + alpha_copy[:, i], gamma, data_reorgnz[i])
-#     end
-
-#     deg_freed = count(!iszero, mu_copy) + 
-#          count(!iszero, alpha_copy_norm) +
-#          size(gamma, 1)
-
-#     criterion = -2 * loglik + deg_freed * (log(n) + 2*log(size(mu_copy, 1)))
-
-#     return criterion, deg_freed
-# end
-
 function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.2)
     # mu_copy = copy(mu)
     # alpha_copy = copy(alpha)
@@ -161,10 +142,8 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
         param1 = [0.001, 0.005, 0.01, 0.05, 0.1]
         param2 = [0.001, 0.005, 0.01, 0.05, 0.1]
     else
-        param1 = [0.05, 0.1, 0.5]
-        param2 = [0.05, 0.1, 0.5]
-        # param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
-        # param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+        param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+        param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
     end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     
