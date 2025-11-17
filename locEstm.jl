@@ -1,7 +1,7 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra
 
-function BayIC(data_reorgnz_val, beta_val, gamma_val, n; thsh = 0.2)
+function BayIC(data_reorgnz_val, beta_val, gamma_val, n; thsh = 0.01)
     beta_val[abs.(beta_val) .<= thsh] .= 0.0
     lkhd = logliklhd_k(beta_val, gamma_val, data_reorgnz_val)
     DF = count(!iszero, beta_val) + size(gamma_val)[1] # Here should be the number of basis functions, using the size of gamma for simplicity.
@@ -75,7 +75,11 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
             beta_hat = beta_hat .* penalty_fun.(beta_hat, xi)
         end
         gamma_hat = sol.u[p+1:end]
-        BIC_val = BayIC(data_reorgnz, beta_hat, gamma_hat, n)
+        if penalty == "none"
+            BIC_val = 0
+        else
+            BIC_val = BayIC(data_reorgnz, beta_hat, gamma_hat, n)
+        end
 
         return local_estimator_result(xi, BIC_val, beta_hat, gamma_hat)
     end
@@ -87,7 +91,7 @@ function local_estimator(data, beta_initial, gamma_initial, knots; spl_order=2, 
         results = evaluate_tuning_param(n/5)
         return results
     else
-        param_grid = [0.001, 0.005, 0.01, 0.03, 0.05, 0.07, 0.09, 0.1, 0.15, 0.2]
+        param_grid = [0.01, 0.03, 0.05, 0.07, 0.09, 0.15, 0.25, 0.5]
     end
 
     # n_combinations = length(param_grid)

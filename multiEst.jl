@@ -1,7 +1,7 @@
 using Optimization, OptimizationNLopt, ForwardDiff
 using Statistics, LinearAlgebra, Logging
 
-function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.2)
+function BayIC2(data_reorgnz, mu, alpha, gamma, n, k; thsh = 0.01)
     # mu_copy = copy(mu)
     # alpha_copy = copy(alpha)
     # alpha_copy_norm = map(norm, eachrow(alpha_copy))
@@ -123,10 +123,14 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
         alpha_hat = reshape(alpha_hat, p, k)
         gamma_hat = sol.u[(k+1)*p+1:end]
 
-        criterion, deg_freed = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
+        if penalty == "none"
+            criterion, deg_freed = 0,0
+        else
+            criterion, deg_freed = BayIC2(data_reorgnz, mu_hat, alpha_hat, gamma_hat, n, k)
+        end
         # print("#")
         # lll = (criterion - deg_freed * (log(n) + log(p)))/(-2)
-        # using Printf
+        # # using Printf
         
         # println("xi_1 = $xi_1, xi_2 = $xi_2, criterion = $( @sprintf("%.2f", criterion) ), deg_freed = $deg_freed, likelhd = $( @sprintf("%.2f", lll) )")
         return optimization_result(xi_1, xi_2, criterion, deg_freed, mu_hat, alpha_hat, gamma_hat)
@@ -142,8 +146,8 @@ function multisource_estimator(data, mu_init, alpha_init, gamma_init, knots;
         param1 = [0.001, 0.005, 0.01, 0.05, 0.1]
         param2 = [0.001, 0.005, 0.01, 0.05, 0.1]
     else
-        param1 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
-        param2 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+        param1 = [0.01, 0.03, 0.07, 0.1, 0.3]
+        param2 = [0.01, 0.03, 0.07, 0.1, 0.3]
     end 
     param_grid = collect(Base.Iterators.product(param1, param2)) |> vec
     

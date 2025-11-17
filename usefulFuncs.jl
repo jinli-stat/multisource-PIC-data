@@ -31,7 +31,6 @@ function process_alpha_value!(mat::AbstractMatrix{<:Real}; threshold=0.05)
     return mat
 end
 
-
 function penalty_scad(beta_hat, tuning_param)
     a_val = 3.7
     abs_beta_hat = abs(beta_hat)
@@ -83,7 +82,7 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
     #           case1: Λ_0 = 0.5*t
     #           case2: Λ_0 = 0.2*t^2  
     p = length(true_beta)
-    cov_matrix = [0.5^abs(i-j) for i in 1:p, j in 1:p]
+    cov_matrix = [0.2^abs(i-j) for i in 1:p, j in 1:p]
     inv_Lambda0 = if cum_base_hzd == "case1"
         x -> x / 0.5
     elseif cum_base_hzd == "case2"
@@ -94,7 +93,6 @@ function gen_pic_data(n, exact_rate, true_beta, cum_base_hzd="case1")
 
     mean_vector = zeros(p)
     x = rand(MvNormal(mean_vector, cov_matrix), n)'
-    x[:, 2] = rand(Binomial(1, 0.5), n)
     x[:, 4] = rand(Binomial(1, 0.5), n)
     x[:, 6] = rand(Binomial(1, 0.5), n)
     risk_score =  safe_exp.(x * true_beta)
@@ -144,24 +142,25 @@ end
 
 # test
 # p =  50
-# n = 1000
+# n = 10000
 
-# mu = vcat(-0.5, -0.5, 0.5, 0.5, 0.0, 0.0, fill(0.0, p-6))
-# alpha_1 = vcat(0.0, 0.0, 0.5, 0.5, 0.5, 0.5, fill(0.0, p-6))
-# alpha_2 = vcat(0.0, 0.0, -0.5, -0.5, -0.5, -0.5, fill(0.0, p-6))
-# alpha_3 = vcat(0.0, 0.0, -0.5, -0.5, -0.5, -0.5, fill(0.0, p-6))
-# alpha_4 = vcat(0.0, 0.0, 0.5, 0.5, 0.5, 0.5, fill(0.0, p-6))
+
+# mu = vcat(0.5, 0.5, 0.5, 0.5, 0.0, 0.0, fill(0.0, p - 6))
+# alpha_1 = vcat(0.0, 0.0, 0.5, 0.5, -0.5, -0.5, fill(0.0, p - 6))
+# alpha_2 = vcat(0.0, 0.0, -0.5, -0.5, 0.5, 0.5, fill(0.0, p - 6))
+# alpha_3 = vcat(0.0, 0.0, -0.5, -0.5, 0.5, 0.5, fill(0.0, p - 6))
+# alpha_4 = vcat(0.0, 0.0, 0.5, 0.5, -0.5, -0.5, fill(0.0, p - 6))
 
 # beta_1 = mu + alpha_1
 # beta_2 = mu + alpha_2
 # beta_3 = mu + alpha_3
 # beta_4 = mu + alpha_4
 
-# data_1 = gen_pic_data(n, 0.2, beta_1, "case1");
-# data_2 = gen_pic_data(n, 0.2, beta_2, "case1");
-# data_3 = gen_pic_data(n, 0.2, beta_3, "case1");
-# data_4 = gen_pic_data(n, 0.2, beta_4, "case1");
-
+# data_1 = gen_pic_data(n, 0.2, beta_1, "case2");
+# data_2 = gen_pic_data(n, 0.2, beta_2, "case2");
+# data_3 = gen_pic_data(n, 0.2, beta_3, "case2");
+# data_4 = gen_pic_data(n, 0.2, beta_4, "case2");
+# data = vcat(data_1, data_2, data_3, data_4)
 # counts = combine(groupby(data, :status), nrow => :count)
 # total = sum(counts.count)
 # counts.Percent = counts.count ./ total .* 100
