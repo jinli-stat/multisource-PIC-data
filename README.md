@@ -41,7 +41,7 @@ include("IAPIC/multiEst.jl")
 include("IAPIC/usefulFuncs.jl")
 
 # Model settings 
-J0 = 10
+J0 = 8
 order = 3
 p = 20
 
@@ -78,12 +78,12 @@ gamma_initial  = fill(0.1, J0 - 2 + order)
 
 res_i = multisource_estimator(data, mu_initial, alpha_initial, gamma_initial, knots; spl_order=order, penalty="none")
 
-# Penalized estimation with SCAD
-best_result = multisource_estimator(data, res_i.mu, res_i.alpha, res_i.gamma, knots; spl_order=order, penalty="scad")
+# Penalized estimation with MIC
+best_result = multisource_estimator(data, res_i.mu, res_i.alpha, res_i.gamma, knots; spl_order=order, penalty="mic")
 mu_hat    = best_result.mu
 alpha_hat = best_result.alpha
 beta_hat  = mu_hat .+ alpha_hat
-beta_hat[abs.(beta_hat) .<= 0.1] .= 0.0
+beta_hat[abs.(beta_hat) .<= 0.05] .= 0.0
 beta_hat
 ```
 
