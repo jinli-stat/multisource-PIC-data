@@ -41,8 +41,8 @@ include("IAPIC/multiEst.jl")
 include("IAPIC/usefulFuncs.jl")
 
 # Model settings 
-J0 = 5
-order = 2
+J0 = 10
+order = 3
 p = 20
 
 # True parameters
@@ -60,7 +60,7 @@ real_beta4 = real_mu + real_alpha4
 
 # Simulate data from 4 sources
 Random.seed!(2026)
-n_1, n_2, n_3, n_4 = 1000, 1000, 1000, 1000
+n_1, n_2, n_3, n_4 = 600, 600, 1400, 1400
 
 data_1 = gen_pic_data(n_1, 0.2, real_beta1)
 data_2 = gen_pic_data(n_2, 0.2, real_beta2)
@@ -87,7 +87,6 @@ beta_hat[abs.(beta_hat) .<= 0.1] .= 0.0
 beta_hat
 ```
 
-
 ## Acknowledgments
 
 The spline implementations are adapted from:
@@ -97,12 +96,16 @@ The spline implementations are adapted from:
 ## Citation
 
 ```bibtex
-@unpublished{jin2026submitted,
-  title   = {Integrative analysis of heterogeneous multisource partly interval-censored data},
-  author  = {Jin, Li and Hu, Tao},
-  year    = {2026},
-  note    = {Submitted for publication},
+@article{Jin2026,
+   title = {Integrative analysis of heterogeneous multisource partly interval-censored data},
+   author = {Jin, Li and Hu, Tao},
+   journal = {Statistical Analysis and Data Mining: An ASA Data Science Journal},
+   year = {2026},
+   volume = {19},
+   number = {5},
+   pages = {e70113}
 }
+
 ```
 
 ## License

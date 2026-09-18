@@ -68,8 +68,8 @@ function get_knots(arr, J0)
         return nothing
     end
     
-    max_value = quantile(filtered_arr, 0.975)
-    min_value = quantile(filtered_arr, 0.025)
+    max_value = quantile(filtered_arr, 0.995)#0.975
+    min_value = quantile(filtered_arr, 0.005)#0.025
     
     knots_J0 = range(min_value, max_value, length=J0)
     knots_J0 = round.(knots_J0, digits=2)
